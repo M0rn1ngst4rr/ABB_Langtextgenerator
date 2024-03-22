@@ -126,6 +126,7 @@ def creatRobotList(roboter_file, vorlageliste_FRG, vorlageliste_VER):
                 if splitted[3].strip() != '' and splitted[3].strip() != '0_0':
                     verriegelung.Langtext = f'({verriegelung.Typ}{verriegelung.Signal}) {splitted[3].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")}'
             robot[0].Ver.append(verriegelung)
+        print("test")
     return Robot_liste
             
 def createLangtext(robot_liste, start_path, liste_grund):
