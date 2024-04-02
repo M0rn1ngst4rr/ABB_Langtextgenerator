@@ -3,22 +3,24 @@ import re
 import time
 
 class Roboter:
-    def __init__(self, name, liste_Ver, liste_FRG):
+    def __init__(self, name, liste_Ver = [], liste_FRG = []):
         self.name = name
         self.Ver = liste_Ver
         self.FRG = liste_FRG
 class FRG:
-    def __init__(self, EA, Langtext, Typ, Signal):
+    def __init__(self, EA, Langtext, Typ, Signal, robotname = "Default"):
         self.EA = EA
         self.Langtext = Langtext
         self.Typ = Typ
         self.Signal = Signal
+        self.Robotname = robotname
 class VER:
-    def __init__(self, EA, Langtext, Typ, Signal):
+    def __init__(self, EA, Langtext, Typ, Signal, robotname = "Default"):
         self.EA = EA
         self.Langtext = Langtext
         self.Typ = Typ
         self.Signal = Signal
+        self.Robotname = robotname
 
 def initialize(start_path):
     frg_vorlage = os.path.join(start_path, "cfg", "vorlagen", "FRGvorlage.csv")
@@ -82,31 +84,36 @@ def readSignals(start_path):
             lines.remove(lines[0])
     return lines
 
-def creatRobotList(roboter_file, vorlageliste_FRG, vorlageliste_VER):
-    Robot_liste = []
+def creatRobotList(roboter_file, vorlageliste_frg, vorlageliste_ver):
+    vorlageliste_FRG = []
+    vorlageliste_VER = []
+    robots =[]
+    list_frg = []
+    list_ver = []
+    for nver in vorlageliste_ver:
+        vorlageliste_VER.append(nver)
+    for nfrg in vorlageliste_frg:
+        vorlageliste_FRG.append(nfrg)
     naming_pattern = r'[0-9][0-9][0-9][0-9][0-9][0-9][_][a-zA-Z][a-zA-Z0-9]+'
     for line in roboter_file:
         line = line.replace("\n","")
         splitted = line.split(";")
-        # deepcode ignore IdenticalBranches: <if empty create robot or if robot is not in the list>
-        if Robot_liste == []:
-            Robot_liste.append(Roboter(splitted[0], [], []))
-        else:
-            if splitted[0] != Robot_liste[-1].name:
-                Robot_liste.append(Roboter(splitted[0], [], []))
         freigaben = [frg for frg in vorlageliste_FRG if frg.Signal == splitted[1]]
         verriegelungen = [ver for ver in vorlageliste_VER if ver.Signal == splitted[1]]
-        robot = [rob for rob in Robot_liste if rob.name == splitted[0]]
         for freigabe in freigaben:
+            newfrg = None
+            newfrg = FRG(freigabe.EA, freigabe.Langtext, freigabe.Typ, freigabe.Signal)
             if freigabe.Typ == "E":
-                if splitted[2] != '  ' and splitted[2].strip() != '0_0':
+                if splitted[2].strip() != '' and splitted[2].strip() != '0_0':
                     if bool(re.search(r'^Position ', splitted[2].strip(), re.IGNORECASE)):
                         splitted[2] = splitted[2].lstrip('Position ')
                     if bool(re.search(naming_pattern, splitted[2].strip(), re.IGNORECASE)):
                         match = re.search(naming_pattern, splitted[2].strip(), re.IGNORECASE).group()
                         splitted[2] = splitted[2].replace(match + " ", "")
                     cleaned = splitted[2].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")
-                    freigabe.Langtext = f'({freigabe.Typ}{freigabe.Signal}) {cleaned}'
+                    newfrg.Langtext = f'({newfrg.Typ}{newfrg.Signal}) {cleaned}'
+                    newfrg.Robotname = splitted[0].strip()
+                    robots.append(newfrg.Robotname)
             elif freigabe.Typ == "A":
                 if splitted[3].strip() != '' and splitted[3].strip() != '0_0':
                     match = []
@@ -116,21 +123,42 @@ def creatRobotList(roboter_file, vorlageliste_FRG, vorlageliste_VER):
                         match = re.search(naming_pattern, splitted[3].strip(), re.IGNORECASE).group()
                         splitted[3] = splitted[3].replace(match + " ", "")
                     cleaned = splitted[3].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")
-                    freigabe.Langtext = f'({freigabe.Typ}{freigabe.Signal}) {cleaned}'
-            robot[0].FRG.append(freigabe)
+                    newfrg.Langtext = f'({freigabe.Typ}{freigabe.Signal}) {cleaned}'
+                    newfrg.Robotname = splitted[0].strip()
+                    robots.append(newfrg.Robotname)
+            list_frg.append(newfrg)
         for verriegelung in verriegelungen:
+            newver = None
+            newver = VER(verriegelung.EA, verriegelung.Langtext, verriegelung.Typ, verriegelung.Signal)
             if verriegelung.Typ == "E":
-                if splitted[2] != '  ' and splitted[2].strip() != '0_0':
-                    verriegelung.Langtext = f'({verriegelung.Typ}{verriegelung.Signal}) {splitted[2].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")}'
+                if splitted[2].strip() != '' and splitted[2].strip() != '0_0':
+                    newver.Langtext = f'({verriegelung.Typ}{verriegelung.Signal}) {splitted[2].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")}'
+                    newver.Robotname = splitted[0].strip()
+                    robots.append(newver.Robotname)
             elif verriegelung.Typ == "A":
                 if splitted[3].strip() != '' and splitted[3].strip() != '0_0':
-                    verriegelung.Langtext = f'({verriegelung.Typ}{verriegelung.Signal}) {splitted[3].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")}'
-            robot[0].Ver.append(verriegelung)
-        print("test")
-    return Robot_liste
+                    newver.Langtext = f'({verriegelung.Typ}{verriegelung.Signal}) {splitted[3].strip().replace("ä", "ae").replace("ü", "ue").replace("ö", "oe").replace("ß", "ss").replace("Ä", "Ae").replace("Ü", "Ue").replace("Ö", "Oe")}'
+                    newver.Robotname = splitted[0].strip()
+                    robots.append(newver.Robotname)
+            list_ver.append(newver)
+    robots = sorted(set(robots))
+    return list_ver, list_frg, robots
+
+def addToRobot(robots, list_frg, list_ver):
+    robot_liste = []
+    for robot in robots:
+        rob = None
+        rob = Roboter(name=robot, liste_Ver = [], liste_FRG = [])
+        for frg in list_frg:
+            if frg.Robotname == robot:
+                rob.FRG.append(FRG(frg.EA, frg.Langtext, frg.Typ, frg.Signal, frg.Robotname))
+        for ver in list_ver:
+            if ver.Robotname == robot:
+                rob.Ver.append(VER(ver.EA, ver.Langtext, ver.Typ, ver.Signal, ver.Robotname))
+        robot_liste.append(rob)
+    return robot_liste
             
-def createLangtext(robot_liste, start_path, liste_grund):
-    
+def createLangtext(robot_liste, start_path, liste_grund): 
     for robot in robot_liste:
         csv_file = []
         for grund in liste_grund:
@@ -142,10 +170,11 @@ def createLangtext(robot_liste, start_path, liste_grund):
         try:
             os.makedirs(f"{start_path}/Langtexte")
         except:
-            print("Langtexte allready exists")
+            #print("Langtexte allready exists")
+            pass
         with open(f"{start_path}/Langtexte/{robot.name}.csv", 'w') as f:
             f.write("\n".join(csv_file))
-
+    
 if __name__=="__main__":
     start_path = os.getcwd()
     try:
@@ -153,14 +182,16 @@ if __name__=="__main__":
         vorlageliste_FRG = createFrg(liste_FRG)
         vorlageliste_VER = createVER(liste_Ver)
         roboter_file = readSignals(start_path)
-        robot_list = creatRobotList(roboter_file, vorlageliste_FRG, vorlageliste_VER)
+        list_ver, list_frg, robots = creatRobotList(roboter_file, vorlageliste_FRG, vorlageliste_VER)
+        robot_list = addToRobot(robots, list_frg, list_ver)
         createLangtext(robot_list, start_path, liste_grund)
     except Exception as e:
         print(f"Problem -> {e}")
         try:
             os.makedirs(f"{start_path}/logs")
         except:
-            print("logs allready exists")
+            #print("logs allready exists")
+            pass
         timestr = time.strftime("%Y%m%d_%H%M%S")
         with open(f"{start_path}/logs/{timestr}_error.txt", 'a') as f:
             f.write(f"Problem -> {e}\n")
